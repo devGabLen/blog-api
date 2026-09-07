@@ -1,8 +1,8 @@
-import type { UpdatePostDto } from '../../dtos/post.dto';
-import type { Post } from '../../../domain/entities/post.entity';
-import type { PostRepository } from '../../../domain/repositories/post.repository';
-import { AppError } from '../../../shared/errors/app-error';
-import { HTTP_STATUS } from '../../../shared/errors/error-codes';
+import type { UpdatePostDto } from "../../dtos/post.dto";
+import type { Post } from "../../../domain/entities/post.entity";
+import type { PostRepository } from "../../../domain/repositories/post.repository";
+import { AppError } from "../../../shared/errors/app-error";
+import { HTTP_STATUS } from "../../../shared/errors/error-codes";
 
 export class UpdatePostUseCase {
   constructor(private readonly postRepository: PostRepository) {}
@@ -15,15 +15,12 @@ export class UpdatePostUseCase {
     const post = await this.postRepository.findById(postId);
 
     if (!post) {
-      throw new AppError(
-        'Publicación no encontrada',
-        HTTP_STATUS.NOT_FOUND,
-      );
+      throw new AppError("Publicación no encontrada", HTTP_STATUS.NOT_FOUND);
     }
 
     if (post.authorId !== authorId) {
       throw new AppError(
-        'No tienes permiso para modificar esta publicación',
+        "No tienes permiso para modificar esta publicación",
         HTTP_STATUS.FORBIDDEN,
       );
     }
@@ -45,10 +42,10 @@ export class UpdatePostUseCase {
 
   private resolvePublishedAt(
     post: Post,
-    status: Post['status'],
+    status: Post["status"],
     now: Date,
   ): Date | null {
-    if (status === 'draft') {
+    if (status === "draft") {
       return null;
     }
 

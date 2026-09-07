@@ -1,11 +1,11 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID } from "node:crypto";
 
-import type { CreatePostDto } from '../../dtos/post.dto';
-import type { Post } from '../../../domain/entities/post.entity';
-import type { PostRepository } from '../../../domain/repositories/post.repository';
-import { AppError } from '../../../shared/errors/app-error';
-import { HTTP_STATUS } from '../../../shared/errors/error-codes';
-import { slugify } from '../../../shared/utils/slugify';
+import type { CreatePostDto } from "../../dtos/post.dto";
+import type { Post } from "../../../domain/entities/post.entity";
+import type { PostRepository } from "../../../domain/repositories/post.repository";
+import { AppError } from "../../../shared/errors/app-error";
+import { HTTP_STATUS } from "../../../shared/errors/error-codes";
+import { slugify } from "../../../shared/utils/slugify";
 
 export class CreatePostUseCase {
   constructor(private readonly postRepository: PostRepository) {}
@@ -15,7 +15,7 @@ export class CreatePostUseCase {
 
     if (!baseSlug) {
       throw new AppError(
-        'El título debe contener letras o números',
+        "El título debe contener letras o números",
         HTTP_STATUS.UNPROCESSABLE_ENTITY,
       );
     }
@@ -30,7 +30,7 @@ export class CreatePostUseCase {
       content: input.content.trim(),
       authorId,
       status: input.status,
-      publishedAt: input.status === 'published' ? now : null,
+      publishedAt: input.status === "published" ? now : null,
       createdAt: now,
       updatedAt: now,
     };
