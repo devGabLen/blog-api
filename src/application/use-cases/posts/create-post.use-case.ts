@@ -5,6 +5,7 @@ import type { Post } from "../../../domain/entities/post.entity";
 import type { PostRepository } from "../../../domain/repositories/post.repository";
 import { AppError } from "../../../shared/errors/app-error";
 import { HTTP_STATUS } from "../../../shared/errors/error-codes";
+import { sanitizeContent } from "../../../shared/utils/sanitize";
 import { slugify } from "../../../shared/utils/slugify";
 
 export class CreatePostUseCase {
@@ -27,7 +28,8 @@ export class CreatePostUseCase {
       id: randomUUID(),
       title: input.title.trim(),
       slug,
-      content: input.content.trim(),
+      content: sanitizeContent(input.content.trim()),
+      imageUrl: input.imageUrl ?? null,
       authorId,
       status: input.status,
       publishedAt: input.status === "published" ? now : null,

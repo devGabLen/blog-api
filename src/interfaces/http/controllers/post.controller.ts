@@ -4,14 +4,18 @@ import type { CreatePostUseCase } from "../../../application/use-cases/posts/cre
 import type { DeletePostUseCase } from "../../../application/use-cases/posts/delete-post.use-case";
 import type { GetPostUseCase } from "../../../application/use-cases/posts/get-post.use-case";
 import type { ListPostsUseCase } from "../../../application/use-cases/posts/list-posts.use-case";
+import type { SearchPostsUseCase } from "../../../application/use-cases/posts/search-posts.use-case";
 import type { UpdatePostUseCase } from "../../../application/use-cases/posts/update-post.use-case";
 import type { Post } from "../../../domain/entities/post.entity";
+import type { PaginationParams, SearchPostsParams } from "../../../application/dtos/post.dto";
 import { AppError } from "../../../shared/errors/app-error";
 import { HTTP_STATUS } from "../../../shared/errors/error-codes";
 import {
   createPostSchema,
+  listPostsQuerySchema,
   postIdParamsSchema,
   postSlugParamsSchema,
+  searchPostsQuerySchema,
   updatePostSchema,
 } from "../validators/post.validator";
 
@@ -22,6 +26,7 @@ export class PostController {
     private readonly getPostUseCase: GetPostUseCase,
     private readonly updatePostUseCase: UpdatePostUseCase,
     private readonly deletePostUseCase: DeletePostUseCase,
+    private readonly searchPostsUseCase: SearchPostsUseCase,
   ) {}
 
   create = async (request: Request, response: Response): Promise<void> => {
@@ -37,13 +42,37 @@ export class PostController {
     });
   };
 
-  list = async (_request: Request, response: Response): Promise<void> => {
-    const posts = await this.listPostsUseCase.execute();
+  list = async (request: Request, response: Response): Promise<void> => {
+    const query = listPostsQuerySchema.parse(request.query);
+    const params: PaginationParams = {
+      page: query.page,
+      limit: query.limit,
+    };
+    const result = await this.listPostsUseCase.execute(params);
 
     response.status(200).json({
       status: "success",
       data: {
-        posts: posts.map((post) => this.toResponsePost(post)),
+        posts: result.data.map((post) => this.toResponsePost(post)),
+        pagination: result.pagination,
+      },
+    });
+  };
+
+  search = async (request: Request, response: Response): Promise<void> => {
+    const query = searchPostsQuerySchema.parse(request.query);
+    const params: SearchPostsParams = {
+      query: query.q,
+      page: query.page,
+      limit: query.limit,
+    };
+    const result = await this.searchPostsUseCase.execute(params);
+
+    response.status(200).json({
+      status: "success",
+      data: {
+        posts: result.data.map((post) => this.toResponsePost(post)),
+        pagination: result.pagination,
       },
     });
   };
@@ -100,6 +129,7 @@ export class PostController {
       title: post.title,
       slug: post.slug,
       content: post.content,
+      imageUrl: post.imageUrl,
       authorId: post.authorId,
       status: post.status,
       publishedAt: post.publishedAt,

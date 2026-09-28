@@ -1,6 +1,7 @@
 import { database } from "../../../config/database";
 import type { Comment } from "../../../domain/entities/comment.entity";
 import type { CommentRepository } from "../../../domain/repositories/comment.repository";
+import type { PaginatedResult, PaginationParams } from "../../../application/dtos/comment.dto";
 import { AppError } from "../../../shared/errors/app-error";
 import { HTTP_STATUS } from "../../../shared/errors/error-codes";
 
@@ -72,18 +73,44 @@ export class PostgresCommentRepository implements CommentRepository {
     return row ? toComment(row) : null;
   }
 
-  async findByPostId(postId: string): Promise<Comment[]> {
-    const result = await database.query<CommentRow>(
-      `
-				SELECT id, content, post_id, author_id, created_at, updated_at
-				FROM comments
-				WHERE post_id = $1
-				ORDER BY created_at ASC;
-			`,
-      [postId],
-    );
+  async findByPostId(postId: string, params?: PaginationParams): Promise<PaginatedResult<Comment>> {
+    const page = params?.page ?? 1;
+    const limit = params?.limit ?? 10;
+    const offset = (page - 1) * limit;
 
-    return result.rows.map(toComment);
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM comments
+      WHERE post_id = $1;
+    `;
+
+    const dataQuery = `
+      SELECT id, content, post_id, author_id, created_at, updated_at
+      FROM comments
+      WHERE post_id = $1
+      ORDER BY created_at ASC
+      LIMIT $2 OFFSET $3;
+    `;
+
+    const [countResult, dataResult] = await Promise.all([
+      database.query<{ total: string }>(countQuery, [postId]),
+      database.query<CommentRow>(dataQuery, [postId, limit, offset]),
+    ]);
+
+    const total = parseInt(countResult.rows[0].total, 10);
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: dataResult.rows.map(toComment),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
   }
 
   async delete(id: string): Promise<void> {

@@ -5,6 +5,7 @@ export interface Post {
   title: string;
   slug: string;
   content: string;
+  imageUrl: string | null;
   authorId: string;
   status: PostStatus;
   publishedAt: Date | null;

@@ -9,6 +9,7 @@ interface UserRow {
   name: string;
   email: string;
   password_hash: string;
+  role: "admin" | "author" | "reader";
   created_at: Date;
   updated_at: Date;
 }
@@ -19,6 +20,7 @@ function toUser(row: UserRow): User {
     name: row.name,
     email: row.email,
     passwordHash: row.password_hash,
+    role: row.role,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -41,15 +43,17 @@ export class PostgresUserRepository implements UserRepository {
         name,
         email,
         password_hash,
+        role,
         created_at,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING
         id,
         name,
         email,
         password_hash,
+        role,
         created_at,
         updated_at;
     `;
@@ -59,6 +63,7 @@ export class PostgresUserRepository implements UserRepository {
       user.name,
       user.email,
       user.passwordHash,
+      user.role,
       user.createdAt,
       user.updatedAt,
     ];
@@ -86,6 +91,7 @@ export class PostgresUserRepository implements UserRepository {
         name,
         email,
         password_hash,
+        role,
         created_at,
         updated_at
       FROM users
@@ -106,6 +112,7 @@ export class PostgresUserRepository implements UserRepository {
         name,
         email,
         password_hash,
+        role,
         created_at,
         updated_at
       FROM users

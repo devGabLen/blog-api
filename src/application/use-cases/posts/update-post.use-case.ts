@@ -3,6 +3,7 @@ import type { Post } from "../../../domain/entities/post.entity";
 import type { PostRepository } from "../../../domain/repositories/post.repository";
 import { AppError } from "../../../shared/errors/app-error";
 import { HTTP_STATUS } from "../../../shared/errors/error-codes";
+import { sanitizeContent } from "../../../shared/utils/sanitize";
 
 export class UpdatePostUseCase {
   constructor(private readonly postRepository: PostRepository) {}
@@ -31,7 +32,8 @@ export class UpdatePostUseCase {
     const updatedPost: Post = {
       ...post,
       title: input.title?.trim() ?? post.title,
-      content: input.content?.trim() ?? post.content,
+      content: input.content ? sanitizeContent(input.content.trim()) : post.content,
+      imageUrl: input.imageUrl !== undefined ? input.imageUrl : post.imageUrl,
       status,
       publishedAt: this.resolvePublishedAt(post, status, now),
       updatedAt: now,

@@ -25,9 +25,21 @@ export const updatePostSchema = z
     },
   );
 
+export const listPostsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+export const searchPostsQuerySchema = z.object({
+  q: z.string().trim().min(1).max(200),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+});
+
 export const postIdParamsSchema = z.object({
   id: z.string().uuid(),
 });
+
 export const postSlugParamsSchema = z.object({
   slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
 });

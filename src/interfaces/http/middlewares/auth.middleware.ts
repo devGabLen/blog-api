@@ -33,6 +33,7 @@ export const authMiddleware: RequestHandler = (request, _response, next) => {
     request.user = {
       id: payload.sub,
       email: payload.email,
+      role: payload.role,
     };
 
     next();

@@ -35,6 +35,7 @@ export class RegisterUserUseCase {
       name: input.name.trim(),
       email,
       passwordHash,
+      role: "reader",
       createdAt: now,
       updatedAt: now,
     };

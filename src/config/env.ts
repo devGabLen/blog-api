@@ -9,6 +9,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.enum(["15m", "1h", "1d", "7d"]).default("1d"),
+  CORS_ORIGIN: z.string().default("http://localhost:3000"),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

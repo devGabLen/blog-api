@@ -1,6 +1,7 @@
 import { database } from "../../../config/database";
 import type { Post, PostStatus } from "../../../domain/entities/post.entity";
 import type { PostRepository } from "../../../domain/repositories/post.repository";
+import type { PaginatedResult, PaginationParams, SearchPostsParams } from "../../../application/dtos/post.dto";
 import { AppError } from "../../../shared/errors/app-error";
 import { HTTP_STATUS } from "../../../shared/errors/error-codes";
 
@@ -9,6 +10,7 @@ interface PostRow {
   title: string;
   slug: string;
   content: string;
+  image_url: string | null;
   author_id: string;
   status: PostStatus;
   published_at: Date | null;
@@ -22,6 +24,7 @@ function toPost(row: PostRow): Post {
     title: row.title,
     slug: row.slug,
     content: row.content,
+    imageUrl: row.image_url,
     authorId: row.author_id,
     status: row.status,
     publishedAt: row.published_at,
@@ -47,18 +50,20 @@ export class PostgresPostRepository implements PostRepository {
         title,
         slug,
         content,
+        image_url,
         author_id,
         status,
         published_at,
         created_at,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING
         id,
         title,
         slug,
         content,
+        image_url,
         author_id,
         status,
         published_at,
@@ -71,6 +76,7 @@ export class PostgresPostRepository implements PostRepository {
       post.title,
       post.slug,
       post.content,
+      post.imageUrl,
       post.authorId,
       post.status,
       post.publishedAt,
@@ -94,8 +100,68 @@ export class PostgresPostRepository implements PostRepository {
     }
   }
 
-  async findPublished(): Promise<Post[]> {
-    const query = `
+  async findPublished(params?: PaginationParams): Promise<PaginatedResult<Post>> {
+    const page = params?.page ?? 1;
+    const limit = params?.limit ?? 10;
+    const offset = (page - 1) * limit;
+
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM posts
+      WHERE status = 'published';
+    `;
+
+    const dataQuery = `
+      SELECT
+        id,
+        title,
+        slug,
+        content,
+        image_url,
+        author_id,
+        status,
+        published_at,
+        created_at,
+        updated_at
+      FROM posts
+      WHERE status = 'published'
+      ORDER BY published_at DESC
+      LIMIT $1 OFFSET $2;
+    `;
+
+    const [countResult, dataResult] = await Promise.all([
+      database.query<{ total: string }>(countQuery),
+      database.query<PostRow>(dataQuery, [limit, offset]),
+    ]);
+
+    const total = parseInt(countResult.rows[0].total, 10);
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: dataResult.rows.map(toPost),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
+  }
+
+  async searchPublished(params: SearchPostsParams): Promise<PaginatedResult<Post>> {
+    const { query, page = 1, limit = 10 } = params;
+    const offset = (page - 1) * limit;
+
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM posts
+      WHERE status = 'published'
+        AND search_vector @@ plainto_tsquery('spanish', $1);
+    `;
+
+    const dataQuery = `
       SELECT
         id,
         title,
@@ -105,15 +171,34 @@ export class PostgresPostRepository implements PostRepository {
         status,
         published_at,
         created_at,
-        updated_at
+        updated_at,
+        ts_rank(search_vector, plainto_tsquery('spanish', $1)) as rank
       FROM posts
       WHERE status = 'published'
-      ORDER BY published_at DESC;
+        AND search_vector @@ plainto_tsquery('spanish', $1)
+      ORDER BY rank DESC, published_at DESC
+      LIMIT $2 OFFSET $3;
     `;
 
-    const result = await database.query<PostRow>(query);
+    const [countResult, dataResult] = await Promise.all([
+      database.query<{ total: string }>(countQuery, [query]),
+      database.query<PostRow>(dataQuery, [query, limit, offset]),
+    ]);
 
-    return result.rows.map(toPost);
+    const total = parseInt(countResult.rows[0].total, 10);
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: dataResult.rows.map(toPost),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
   }
 
   async findById(id: string): Promise<Post | null> {
@@ -123,6 +208,7 @@ export class PostgresPostRepository implements PostRepository {
         title,
         slug,
         content,
+        image_url,
         author_id,
         status,
         published_at,
@@ -146,6 +232,7 @@ export class PostgresPostRepository implements PostRepository {
         title,
         slug,
         content,
+        image_url,
         author_id,
         status,
         published_at,
@@ -169,15 +256,17 @@ export class PostgresPostRepository implements PostRepository {
         title = $2,
         slug = $3,
         content = $4,
-        status = $5,
-        published_at = $6,
-        updated_at = $7
+        image_url = $5,
+        status = $6,
+        published_at = $7,
+        updated_at = $8
       WHERE id = $1
       RETURNING
         id,
         title,
         slug,
         content,
+        image_url,
         author_id,
         status,
         published_at,
@@ -190,6 +279,7 @@ export class PostgresPostRepository implements PostRepository {
       post.title,
       post.slug,
       post.content,
+      post.imageUrl,
       post.status,
       post.publishedAt,
       post.updatedAt,

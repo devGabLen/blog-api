@@ -4,11 +4,13 @@ import type { CreateCommentUseCase } from "../../../application/use-cases/commen
 import type { DeleteCommentUseCase } from "../../../application/use-cases/comments/delete-comment.use-case";
 import type { ListCommentsUseCase } from "../../../application/use-cases/comments/list-comments.use-case";
 import type { Comment } from "../../../domain/entities/comment.entity";
+import type { PaginationParams } from "../../../application/dtos/comment.dto";
 import { AppError } from "../../../shared/errors/app-error";
 import { HTTP_STATUS } from "../../../shared/errors/error-codes";
 import {
   commentIdParamsSchema,
   createCommentSchema,
+  listCommentsQuerySchema,
   postIdParamsSchema,
 } from "../validators/comment.validator";
 
@@ -21,12 +23,18 @@ export class CommentController {
 
   list = async (request: Request, response: Response): Promise<void> => {
     const { postId } = postIdParamsSchema.parse(request.params);
-    const comments = await this.listCommentsUseCase.execute(postId);
+    const query = listCommentsQuerySchema.parse(request.query);
+    const params: PaginationParams = {
+      page: query.page,
+      limit: query.limit,
+    };
+    const result = await this.listCommentsUseCase.execute(postId, params);
 
     response.status(200).json({
       status: "success",
       data: {
-        comments: comments.map((comment) => this.toResponseComment(comment)),
+        comments: result.data.map((comment) => this.toResponseComment(comment)),
+        pagination: result.pagination,
       },
     });
   };
