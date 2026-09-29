@@ -1,5 +1,7 @@
 # Blog API
 
+> **Estado: Actualmente en mantenimiento** — Se están realizando mejoras y correcciones. La API puede no estar disponible temporalmente.
+
 API REST para un blog, construida con TypeScript, Express y PostgreSQL, siguiendo principios de Clean Architecture.
 
 ## Características
